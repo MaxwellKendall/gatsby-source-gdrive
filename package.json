@@ -1,6 +1,6 @@
 {
-  "name": "source-google-drive",
-  "version": "1.0.0",
+  "name": "gatsby-source-gdrive",
+  "version": "1.0.1",
   "description": "",
   "main": "gatsby-node.js",
   "scripts": {
