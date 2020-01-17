@@ -22,4 +22,4 @@ Here's an example from my `gatsby-config.js`:
 Does not export google documents. I'm using this mostly for images!
 
 ## Acknowledgment
-Based this off one of the existing google-drive source plugins. Sorry I can't remember which one, I tried a few and ran into some issues and this plugin was created in attempt to fix them.
+Based this off one of the existing google-drive source plugins. Sorry I can't remember which one, I tried a few and ran into some issues and this plugin was created in attempt to fix them. If for some reason whoever you are you find this and are upset, I'll gladly attribute you here in some fashion. Thanks!
