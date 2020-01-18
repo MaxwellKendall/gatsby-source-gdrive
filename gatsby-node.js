@@ -77,7 +77,7 @@ function fetchFilesInFolder(filesInFolder, parent = '', gDriveClient, destinatio
         const nestedFiles = getFolder(gDriveClient, file.id)
           .then((files) => {
             // combining array of promises into one.
-            return Promise.all(fetchFilesInFolder(files, `${parent}/${snakeCasedFolderName}`, gDriveClient, destination, write));
+            return Promise.all(fetchFilesInFolder(files, `${parent}/${snakeCasedFolderName}`, gDriveClient, destination));
           });
         promises.push(nestedFiles);
       }
