@@ -23,7 +23,7 @@ const getFolder = async (gDriveClient, folderId) => {
 
 const getAuthorziedGdriveClient = (options) => {
   let key;
-  const { scopes } = { ...options, ...defaultOptions };
+  const { scopes } = options;
 
   if (options.key) key = JSON.parse(options.key);
   if (fs.existsSync(options.pemFilePath)) {
@@ -49,7 +49,7 @@ exports.onPreBootstrap = (
     log(`Started downloading content...`);
 
     // Get token and fetch root folder.
-    const { folderId, destination } = { ...options, ...defaultOptions };
+    const { folderId, destination } = options;
 
     // getting the drive client
     const gDriveClient = getAuthorziedGdriveClient(options);
@@ -133,7 +133,7 @@ const getFilenameByMime = file => {
   }
 }
 
-exports.sourceNodes = async ({ actions }, options = defaultOptions) => {
+exports.sourceNodes = async ({ actions }, options) => {
     log('creating graphql nodes...');
     const { createNode } = actions;
     const { folderId } = options;
