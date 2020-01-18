@@ -134,12 +134,18 @@ const getFilenameByMime = file => {
 }
 
 exports.sourceNodes = async ({ actions }, options) => {
-    log('creating graphql nodes...');
+    log('creating graphql nodes...', options);
     const { createNode } = actions;
     const { folderId } = options;
     const gDriveClient = getAuthorziedGdriveClient(options);
-  
-    const filesInFolder = await getFolder(gDriveClient, folderId);
+    let filesInFolder;
+
+    try {
+      filesInFolder = await getFolder(gDriveClient, folderId);
+    }
+    catch(e) {
+      console.log(`some stupid error... ${e}`);
+    }
   
     Promise.all(fetchFilesInFolder(filesInFolder, undefined, gDriveClient, '', false))
       .then((allFiles) => {
@@ -154,6 +160,10 @@ exports.sourceNodes = async ({ actions }, options) => {
                     type: 'gDriveContent'
                 }
             }))
-            .forEach((file) => createNode(file));
-      });
+            .forEach((file) => createNode(file))
+      })
+      .catch(e => console.log(`Error: ${e}`));
+
+      // we're done, return.
+      return;
 };
