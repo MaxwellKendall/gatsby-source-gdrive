@@ -8,13 +8,6 @@ const log = str => console.log(`\n🚗 `, str);
 const FOLDER = `application/vnd.google-apps.folder`;
 const GOOGLE_DOC = 'application/vnd.google-apps.document';
 const exportMime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-const defaultOptions = {
-    folderId: '16donbs7-81ncyDK2G4XFI9b5Cf_I0GDD',
-    key: '',
-    scopes: [
-      'https://www.googleapis.com/auth/drive',
-    ]
-};
 
 const getFolder = async (gDriveClient, folderId) => {
     const { data: { files }} = await gDriveClient.files.list({ q: `'${folderId}' in parents`});
@@ -70,17 +63,15 @@ exports.onPreBootstrap = (
   });
 };
 
-function fetchFilesInFolder(filesInFolder, parent = '', gDriveClient, destination, write = true) {
+function fetchFilesInFolder(filesInFolder, parent = '', gDriveClient, destination) {
     const promises = [];
 
     filesInFolder.forEach(async (file) => {
       if (file.mimeType === FOLDER) {
         // If it`s a folder, create it in filesystem
         const snakeCasedFolderName = file.name.toLowerCase().split(' ').join('_');
-        if (write) {
-            log(`Creating folder ${parent}/${snakeCasedFolderName}`);
-            mkdirp(path.join(destination, parent, snakeCasedFolderName));
-        }
+        log(`Creating folder ${parent}/${snakeCasedFolderName}`);
+        mkdirp(path.join(destination, parent, snakeCasedFolderName));
 
         // Then, get the files inside and run the function again.
         const nestedFiles = getFolder(gDriveClient, file.id)
@@ -93,20 +84,14 @@ function fetchFilesInFolder(filesInFolder, parent = '', gDriveClient, destinatio
       else {
         promises.push(
           new Promise(async (resolve, reject) => {
-            if (write) {
-                // If it`s a file, download it and convert to buffer.
-                const filePath = path.join(destination, parent, getFilenameByMime(file));
-                const driveResponse = await gDriveClient.files.get({ fileId: file.id, alt: 'media', fields: "*" }, { responseType: 'arraybuffer' });
-                const buff = new Buffer.from(driveResponse.data);
-                fs.writeFile(filePath, buff, () => {
-                    log(`${file.name} written`);
-                    return resolve(getFilenameByMime(file));
-                });
-            }
-            else {
-                const { data } = await gDriveClient.files.get({ fileId: file.id, fields: "description, name, kind, modifiedTime, trashed, id" });
-                resolve(data);
-            }
+            // If it`s a file, download it and convert to buffer.
+            const filePath = path.join(destination, parent, getFilenameByMime(file));
+            const driveResponse = await gDriveClient.files.get({ fileId: file.id, alt: 'media', fields: "*" }, { responseType: 'arraybuffer' });
+            const buff = new Buffer.from(driveResponse.data);
+            fs.writeFile(filePath, buff, () => {
+                log(`${file.name} written`);
+                return resolve(getFilenameByMime(file));
+            });
         }));
       }
     });
@@ -132,38 +117,3 @@ const getFilenameByMime = file => {
     return file.name;
   }
 }
-
-exports.sourceNodes = async ({ actions }, options) => {
-    log('creating graphql nodes...', options);
-    const { createNode } = actions;
-    const { folderId } = options;
-    const gDriveClient = getAuthorziedGdriveClient(options);
-    let filesInFolder;
-
-    try {
-      filesInFolder = await getFolder(gDriveClient, folderId);
-    }
-    catch(e) {
-      console.log(`some stupid error... ${e}`);
-    }
-  
-    Promise.all(fetchFilesInFolder(filesInFolder, undefined, gDriveClient, '', false))
-      .then((allFiles) => {
-        lodash.flattenDeep(allFiles)
-            .filter((file) => !file.trashed)
-            .map((file) => ({
-                id: file.id,
-                description: file.description ? file.description : '',
-                name: file.name,
-                internal: {
-                    contentDigest: `${file.id}_${file.modifiedTime}`,
-                    type: 'gDriveContent'
-                }
-            }))
-            .forEach((file) => createNode(file))
-      })
-      .catch(e => console.log(`Error: ${e}`));
-
-      // we're done, return.
-      return;
-};
