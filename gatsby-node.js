@@ -72,7 +72,6 @@ function fetchFilesInFolder(filesInFolder, parent = '', gDriveClient, destinatio
         const snakeCasedFolderName = file.name.toLowerCase().split(' ').join('_');
         log(`Creating folder ${parent}/${snakeCasedFolderName}`);
         mkdirp(path.join(destination, parent, snakeCasedFolderName));
-
         // Then, get the files inside and run the function again.
         const nestedFiles = getFolder(gDriveClient, file.id)
           .then((files) => {
@@ -80,6 +79,19 @@ function fetchFilesInFolder(filesInFolder, parent = '', gDriveClient, destinatio
             return Promise.all(fetchFilesInFolder(files, `${parent}/${snakeCasedFolderName}`, gDriveClient, destination));
           });
         promises.push(nestedFiles);
+      }
+      else if (file.mimeType === GOOGLE_DOC) {
+        promises.push(
+          new Promise(async (resolve, reject) => {
+            // If it`s a file, download it and convert to buffer.
+            const filePath = path.join(destination, parent, getFilenameByMime(file));
+            const driveResponse = await gDriveClient.files.export({ fileId: file.id, mimeType: 'text/html' })
+            const buff = new Buffer.from(driveResponse.data);
+            fs.writeFile(filePath, buff, () => {
+                log(`${file.name} written`);
+                return resolve(getFilenameByMime(file));
+            });
+        }));
       }
       else {
         promises.push(
@@ -100,7 +112,7 @@ function fetchFilesInFolder(filesInFolder, parent = '', gDriveClient, destinatio
 }
 
 const fileExtensionsByMime = new Map([
-  ['text/html', '.html'],
+  ['application/vnd.google-apps.document', '.html'],
   ['application/zip', '.zip'],
   ['text/plain', '.txt'],
   ['application/rtf', '.rtf'],
@@ -112,7 +124,7 @@ const fileExtensionsByMime = new Map([
 
 const getFilenameByMime = file => {
   if (file.mimeType === GOOGLE_DOC) {
-    return `${file.name}${fileExtensionsByMime.get(exportMime)}`
+    return `${file.name}${fileExtensionsByMime.get(file.mimeType)}`
   } else {
     return file.name;
   }
